@@ -1,10 +1,10 @@
 {
-    "db": {
-      "host": "127.0.0.1",
-      "port": "27017",
-      "name": "userdb",
-      "user": "",
-      "password": ""
-    }
+  "db": {
+    "host": "127.0.0.1",
+    "port": "27017",
+    "name": "userdb",
+    "user": "",
+    "password": "",
+    "protocol": "mongodb"
   }
-  
+}

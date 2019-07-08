@@ -4,7 +4,12 @@ const config = require('./config.js');
 // Use native promises
 mongoose.Promise = global.Promise; // es6 promise
 
-const connectionURL = `mongodb://${config.db.user}@${config.db.host}:${config.db.port}/${config.db.name}`;
+const connectionURL = `${config.db.protocol}` +
+  `://${config.db.user}:${config.db.password}` +
+  `@${config.db.host}` +
+  `${config.db.port ? `:${config.db.port}` : ""}` +
+  `/${config.db.name}${config.db.reqBody ? config.db.reqBody : ''}`;
+
 mongoose.set('useCreateIndex', true);
 
 mongoose.connect(connectionURL, { useNewUrlParser: true, useFindAndModify: false })

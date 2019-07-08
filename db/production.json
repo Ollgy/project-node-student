@@ -1,9 +1,10 @@
 {
-    "db": {
-      "host": "127.0.0.1",
-      "port": "27017",
-      "name": "userdb",
-      "user": "",
-      "password": ""
-    }
+  "db": {
+    "host": "clasterbase-ruoo2.mongodb.net",
+    "name": "userdb",
+    "user": "Ollgy",
+    "password": "mongobase",
+    "protocol": "mongodb+srv",
+    "reqBody": "?retryWrites=true&w=majority"
   }
+}
