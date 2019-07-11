@@ -143,8 +143,7 @@ module.exports.saveUserImage = function(req, res, next) {
         console.error(err.message);
       }
 
-      const dir = fileName; //.substr(fileName.indexOf('\\'));
-      console.log(dir);
+      const dir = fileName.substr(fileName.indexOf(`${path.sep}`));
 
       Jimp.read(fileName, (err, img) => {
         if (err) {
