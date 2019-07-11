@@ -84,7 +84,7 @@ module.exports.login = (req, res, next) => {
           res.cookie('access_token', token, {
             maxAge: 7 * 60 * 60 * 1000,
             path: '/',
-            httpOnly: true,
+            httpOnly: false,
           });
 
           console.log("Был авторизован пользователь, установлен токен", user);
@@ -98,23 +98,22 @@ module.exports.login = (req, res, next) => {
   })(req, res, next);
 };
 
-module.exports.authFromToken = function(req, res) {
-  const body = JSON.parse(req.body);
-  console.log('token');
+module.exports.authFromToken = function(req, res, next) {
   const token = req.cookies.access_token;
 
   if (!!token) {
-    User.findOne({ token }).then(user => {
+    User.findOne({ access_token: token }).then(user => {
+      console.log(user);
       if (user) {
         req.logIn(user, err => {
           if (err) next(err);
           res.json(user);
         });
       }
-      next();
+      res.sendFile(path.join(NODE_PATH + '/dist/index.html'));
     });
   } else {
-    next();
+    res.sendFile(path.join(NODE_PATH + '/dist/index.html'));
   }
 };
 

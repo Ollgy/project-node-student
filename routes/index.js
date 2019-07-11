@@ -4,10 +4,10 @@ const router = express.Router();
 
 const api = require('../api/index');
 
-router.get('/', (req, res, err) => {
-  if (err) {
-    console.log(err);
-  }
+router.get('/*', (req, res, next) => {
+    // if (err) {
+    //   console.log(err);
+    // }
   
   res.sendFile(path.join(NODE_PATH + '/dist/index.html'));
 });

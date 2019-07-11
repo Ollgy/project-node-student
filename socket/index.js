@@ -16,17 +16,19 @@ module.exports = function(server) {
   
     console.log(clients);
   
-    socket.emit('new user', client);
+    socket.broadcast.emit('new user', client);
     socket.emit('all users', clients);
   
-    socket.on('chat message', (message, id) => {
+    socket.on('chat message', (message, idReceive) => {
       console.log(message, id);
-      socket.broadcast.emit('chat message', message, id);
+      const socket = io.sockets.clients().sockets[idReceive];
+      console.log(socket);
+      socket.emit('chat message', message, clients[id].id);
     });
       
     socket.on('disconnect', () => {
       console.log('disconnect');
-      socket.emit('delete user', id);
+      socket.broadcast.emit('delete user', id);
       delete clients[id];
     });
   });
