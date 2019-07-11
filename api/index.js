@@ -120,13 +120,9 @@ module.exports.authFromToken = function(req, res, next) {
 module.exports.saveUserImage = function(req, res, next) {
   const { id } = req.params; 
   const form = new formidable.IncomingForm();
+  const upload = path.join('./dist', 'upload');
 
   const mode = process.env.NODE_ENV ? 'production' : 'development';
-  
-  let upload;
-  upload = mode === 'development' 
-    ? path.join('./dist', 'upload')
-    : path.normalize('./upload');
 
   if (!fs.existsSync(upload)) {
     fs.mkdirSync(upload);
@@ -147,7 +143,8 @@ module.exports.saveUserImage = function(req, res, next) {
         console.error(err.message);
       }
 
-      const dir = fileName.substr(fileName.indexOf('\\'));
+      const dir = fileName; //.substr(fileName.indexOf('\\'));
+      console.log(dir);
 
       Jimp.read(fileName, (err, img) => {
         if (err) {
