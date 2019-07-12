@@ -174,19 +174,23 @@ module.exports.saveUserImage = function(req, res, next) {
 
 module.exports.updateUser = function(req, res) {
   const body = JSON.parse(req.body);
-  const { oldPassword, ...rest } = body;
+  const { oldPassword, password, ...rest } = body;
   const { id } = req.params;
 
   User.findById(id)
     .then((obj) => {
-      if (oldPassword && oldPassword !== obj.password) {
+      if (oldPassword && !obj.validPassword(oldPassword)) {
+        res.json(obj);
         throw new Error('Неверно указан предыдущий пароль');
       }
 
       User.findByIdAndUpdate(id, { ...rest }, { new: true })
-        .then((obj) => {
-          console.log("Были обновлены данные пользователя", obj);
-          res.json(obj);
+        .then((user) => {
+          user.setPassword(password);
+          user.save().then(user => {
+            console.log("Были обновлены данные пользователя", user);
+            res.json(user);
+          });
         });
     })
     .catch(function (err){
