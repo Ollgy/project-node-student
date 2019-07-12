@@ -12,17 +12,15 @@ module.exports = function(server) {
       username: socket.handshake.headers.username
     };
   
+    socket.emit('all users', clients);
+    
     clients[id] = client;
   
-    console.log(clients);
-  
     socket.broadcast.emit('new user', client);
-    socket.emit('all users', clients);
   
     socket.on('chat message', (message, idReceive) => {
-      console.log(message, id);
       const socket = io.sockets.clients().sockets[idReceive];
-      console.log(socket);
+
       socket.emit('chat message', message, clients[id].id);
     });
       

@@ -36,7 +36,7 @@ app.use(express.static(path.join(__dirname + '/dist'), { index: false } ));
 
 require('./passport/config-passport');
 app.use(passport.initialize());
-//app.use(passport.session());
+app.use(passport.session());
 
 app.use('/', require('./routes/index'));
 
@@ -50,7 +50,6 @@ app.use(function (req, res, next) {
   
 // error handler
 app.use(function (err, req, res, next) {
-  // render the error page
   res.status(err.status || 500);
   res.end('error !!! error');
 });
