@@ -45,8 +45,14 @@ schema.methods.validPassword = function(password) {
   return bCrypt.compareSync(password, this.password);
 };
 
-schema.methods.setToken = function(token) {
-  this.access_token = token;
+schema.methods.setProperty = function(property, value) {
+  try {
+    if (Object.keys(schema.obj).includes(property)) {
+      this[property] = value;
+    }
+  } catch(err) {
+    console.log(err);
+  }
 };
 
 module.exports = mongoose.model("User", schema);

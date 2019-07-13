@@ -84,7 +84,7 @@ module.exports.login = (req, res, next) => {
 
       if (body.remembered) {
         const token = uuidv4();
-        user.setToken(token);
+        user.setProperty('access_token', token);
         user.save().then(user => {
           res.cookie('access_token', token, {
             maxAge: 7 * 60 * 60 * 1000,
@@ -108,7 +108,6 @@ module.exports.authFromToken = function(req, res, next) {
 
   if (!!token) {
     User.findOne({ access_token: token }).then(user => {
-      console.log(user);
       if (user) {
         req.logIn(user, err => {
           if (err) next(err);
@@ -143,7 +142,7 @@ module.exports.saveUserImage = function(req, res, next) {
 
     fs.rename(files[id].path, fileName, function (err) {
       if (err) {
-        console.error(err.message);
+        console.log(err.message);
       }
 
       const dir = fileName.substr(fileName.indexOf(`${path.sep}`));
@@ -159,123 +158,107 @@ module.exports.saveUserImage = function(req, res, next) {
           .quality(60) 
           .write(fileName); 
 
-          User.findByIdAndUpdate(id, { image: dir }, { new: true })
-            .then((obj) => {
-              console.log("Было обновлено изображение", dir);
-              res.json({ path: dir });
-            })
-            .catch(err => {
-              console.error(err);
-            });
+        req.user.setProperty('image', dir);
+        req.user.save()
+          .then((obj) => {
+            console.log("Было обновлено изображение", dir);
+            res.json({ path: dir });
+          })
+          .catch(err => {
+            console.error(err);
           });
         });
+      });
   });
 };
 
 module.exports.updateUser = function(req, res) {
   const body = JSON.parse(req.body);
-  const { oldPassword, password, ...rest } = body;
-  const { id } = req.params;
+  const { id, oldPassword, password, ...rest } = body;
 
-  User.findById(id)
-    .then((obj) => {
-      if (oldPassword && !obj.validPassword(oldPassword)) {
-        res.json(obj);
-        throw new Error('Неверно указан предыдущий пароль');
-      }
+  if (oldPassword && !req.user.validPassword(oldPassword)) {
+    console.log('Неверно указан предыдущий пароль');
+    return res.json(req.user);
+  }
 
-      User.findByIdAndUpdate(id, { ...rest }, { new: true })
-        .then((user) => {
-          user.setPassword(password);
-          user.save().then(user => {
-            console.log("Были обновлены данные пользователя", user);
-            res.json(user);
-          });
-        });
-    })
-    .catch(function (err){
-      console.log(err);
-    });
+  Object.keys(rest).forEach(prop => req.user.setProperty(prop, rest[prop]));
+
+  if (password) {
+    req.user.setPassword(password);
+  }
+  
+  req.user.save()
+    .then(user => {
+      console.log("Были обновлены данные пользователя", user);
+      res.json(user);
+  })
+  .catch(err => {
+    console.log(err);
+  });
 }
 
 module.exports.deleteUser = function(req, res) {
   const { id } = req.params;
 
-  if (req.user.permission.setting.D) {
-    User.findByIdAndRemove(id)
-      .then(user => {
-        User.find((err, user) => res.json(user));
-      })
-      .catch(function (err){
-        console.log(err);
-      });
-  } else {
-    res.status(403);
-  }
+  User.findByIdAndRemove(id)
+    .then(user => {
+      User.find((err, user) => res.json(user));
+    })
+    .catch(err => {
+      console.log(err);
+    });
 }
 
 module.exports.getUsers = function(req, res) {
-  if (req.user.permission.setting.R) {
-    User.find()
-      .then(user => {
-        res.json(user);
-      })
-      .catch(function (err){
-        console.log(err);
-      });
-  } else {
-    res.status(403);
-  }
-}
-
-// News
-module.exports.newNews = async function(req, res) {
-  const body = JSON.parse(req.body);
-
-  const { userId, date, text, theme } = body;
-  const user = await User.findById(userId);
-
-  if (user.permission.news.C) {
-    const newsItem = new News({ 
-      id: '',
-      user,
-      date,
-      text,
-      theme
-    });
-  
-    newsItem.save()
-      .then((obj) => {
-        const id = obj.get('_id');
-        
-        News.findByIdAndUpdate(id, {$set: { id }}, { new: true }, (err, doc) => {
-          if (err) {
-            console.log(err);
-          }
-          console.log("Была добавлена новость", doc);
-          News.find((err, obj) => res.json(obj));
-        });
-      })
-      .catch(function (err){
-        console.log(err);
-      });
-  } else {
-    res.status(403);
-  }
-};
-
-module.exports.getNews = function(req, res) {
-  if (req.user.permission.news.R) {
-    News.find()
-    .then((obj) => {
-      res.json(obj)
+  User.find()
+    .then(user => {
+      res.json(user);
     })
     .catch(function (err){
       console.log(err);
     });
-  } else {
-    res.status(403);
-  }
+}
+
+// News
+module.exports.newNews = function(req, res) {
+  const body = JSON.parse(req.body);
+
+  const { userId, date, text, theme } = body;
+  const { user } = req;
+
+  const newsItem = new News({ 
+    id: '',
+    user,
+    date,
+    text,
+    theme
+  });
+
+  newsItem.save()
+    .then(obj => {
+      const id = obj.get('_id');
+      
+      News.findByIdAndUpdate(id, {$set: { id }}, { new: true }, (err, obj) => {
+        if (err) {
+          console.log(err);
+        }
+        console.log("Была добавлена новость", obj);
+        News.find((err, obj) => res.json(obj));
+      });
+    })
+    .catch(err => {
+      console.log(err);
+    });
+};
+
+module.exports.getNews = function(req, res) {
+  News.find()
+    .then(obj => {
+      res.json(obj)
+    })
+    .catch(err => {
+      console.log(err);
+    });
 }
 
 module.exports.updateNews = function(req, res) {
@@ -283,19 +266,12 @@ module.exports.updateNews = function(req, res) {
   const { userId, ...rest } = body;
   const { id } = req.params;
 
-  User.findById(userId)
+  News.findByIdAndUpdate(id, { user: req.user, ...rest }, { new: true })
     .then((obj) => {
-      if (obj.permission.news.U) {
-        News.findByIdAndUpdate(id, { user: obj, ...rest }, { new: true })
-          .then((obj) => {
-            console.log("Были обновлены новости", obj);
-            News.find((err, obj) => res.json(obj));
-          });
-      } else {
-        res.status(403);
-      }
+      console.log("Были обновлены новости", obj);
+      News.find((err, obj) => res.json(obj));
     })
-    .catch(function (err){
+    .catch(err => {
       console.log(err);
     });
 }
@@ -303,17 +279,13 @@ module.exports.updateNews = function(req, res) {
 module.exports.deleteNews = function(req, res) {
   const { id } = req.params;
 
-  if (req.user.permission.news.D) {
-    News.findByIdAndRemove(id)
-      .then((obj) => {
-        News.find((err, obj) => res.json(obj));
-      })
-      .catch(function (err){
-        console.log(err);
-      });
-  } else {
-    res.status(403);
-  }
+  News.findByIdAndRemove(id)
+    .then(obj => {
+      News.find((err, obj) => res.json(obj));
+    })
+    .catch(err => {
+      console.log(err);
+    });
 }
 
 module.exports.updateUserPermission = function(req, res) {
@@ -325,25 +297,20 @@ module.exports.updateUserPermission = function(req, res) {
   const { id: idNews, ...newsUpdate } = news || {};
   const { id: idSetting, ...settingUpdate } = setting || {};
   const { id } = req.params;
+  const { user } = req;
 
-  User.findById(id)
-    .then((user) => {
-      if (req.user.permission.setting.U) {
-        User.findByIdAndUpdate(id, { 
-          permissionId, permission: { 
-            chat: chatUpdate ? { ...user.permission.chat, ...chatUpdate } : { ...user.permission.chat },
-            news: newsUpdate ? { ...user.permission.news, ...newsUpdate } : {...user.permission.news }, 
-            setting: settingUpdate ? { ...user.permission.setting, ...settingUpdate } : { ...user.permission.setting }
-        }}, { new: true })
-          .then((user) => {
-            console.log(`Были обновлены разрешения пользователя ${id} ${user.username}`, user.permission);
-            res.json(user);
-          });
-      } else {
-        res.status(403);
-      }
-    })
-    .catch(function (err){
-      console.log(err);
-    });
+  User.findByIdAndUpdate(id, { 
+    permissionId, permission: { 
+      chat: chatUpdate ? { ...user.permission.chat, ...chatUpdate } : { ...user.permission.chat },
+      news: newsUpdate ? { ...user.permission.news, ...newsUpdate } : {...user.permission.news }, 
+      setting: settingUpdate ? { ...user.permission.setting, ...settingUpdate } : { ...user.permission.setting }
+    }
+  }, { new: true })
+    .then(user => {
+      console.log(`Были обновлены разрешения пользователя ${id} ${user.username}`, user.permission);
+      res.json(user);
+  })
+  .catch(err => {
+    console.log(err);
+  });
 }

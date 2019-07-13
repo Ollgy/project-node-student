@@ -23,7 +23,7 @@ app.use(session({
     path: '/',
     httpOnly: true,
     secure : false,
-    maxAge: 60000 
+    maxAge: 600000 
   },
   secret: 'secret',
   resave: true,
